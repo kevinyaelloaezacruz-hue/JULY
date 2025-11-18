@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TE AMO JULY — Partículas</title>
+
+  <style>
+    html,body{
+      height:100%;
+      margin:0;
+      background:#0b0010;
+      overflow:hidden;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      touch-action:manipulation;
+    }
+    canvas{
+      display:block;
+      width:100vw;
+      height:100vh;
+    }
+    .ui{
+      position:fixed;
+      left:50%;
+      top:20px;
+      transform:translateX(-50%);
+      color:#eee;
+      font-size:14px;
+      padding:8px 12px;
+      background:rgba(0,0,0,0.3);
+      border-radius:10px;
+      backdrop-filter:blur(6px);
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="ui"><strong>Tamo weritaa ❤️</strong></div>
+<canvas id="c"></canvas>
+
+<script>
+// ==== CANVAS SETUP ====
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth * 2;   // double resolution for sharpness
+  canvas.height = window.innerHeight * 2;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// ==== OFFSCREEN CANVAS ====
+const off = document.createElement('canvas');
+const offCtx = off.getContext('2d');
+
+// ==== SETTINGS ====
+let W = canvas.width;
+let H = canvas.height;
+
+let particles = [];
+let targets = [];
+let frame = 0;
+
+const PARTICLE_SIZE = 2.4;
+const SAMPLE_GAP = 5;
+const PARTICLE_COUNT = 1600;
+const TEXT = "TE AMO JULY";
+const FONT_FAMILY = "Montserrat, system-ui, Arial";
+const PURPLE = ['#8A2BE2','#9b5cff','#6a00a8','#b77bff'];
+
+let animationStage = 0;
+
+// ==== RESAMPLE TEXT ====
+function createTargetsFromText(){
+  
+  off.width = W;
+  off.height = H;
+  offCtx.clearRect(0,0,W,H);
+
+  const fontSize = Math.min(W,H) * 0.12;
+
+  offCtx.fillStyle = "#fff";
+  offCtx.textAlign = "center";
+  offCtx.textBaseline = "middle";
+  offCtx.font = `700 ${fontSize}px ${FONT_FAMILY}`;
+  offCtx.fillText(TEXT, W/2, H/2);
+
+  const img = offCtx.getImageData(0,0,W,H).data;
+  targets = [];
+
+  for(let y=0; y<H; y+=SAMPLE_GAP){
+    for(let x=0; x<W; x+=SAMPLE_GAP){
+      const idx = (y*W + x) * 4;
+      if(img[idx + 3] > 50){
+        targets.push({x,y});
+      }
+    }
+  }
+
+  // limit particles
+  if(targets.length > PARTICLE_COUNT){
+    const step = Math.ceil(targets.length / PARTICLE_COUNT);
+    targets = targets.filter((_,i)=> i % step === 0);
+  }
+}
+
+// ==== PARTICLE CLASS ====
+class Particle{
+  constructor(tx,ty){
+    this.x = Math.random()*W;
+    this.y = Math.random()*H;
+    this.tx = tx;
+    this.ty = ty;
+
+    this.vx = (Math.random()-0.5)*6;
+    this.vy = (Math.random()-0.5)*6;
+
+    this.size = PARTICLE_SIZE*(0.7+Math.random()*1.1);
+    this.color = PURPLE[(Math.random()*PURPLE.length)|0];
+    this.ease = 0.06 + Math.random()*0.05;
+    this.friction = 0.9 + Math.random()*0.05;
+  }
+
+  update(){
+    const dx = this.tx - this.x;
+    const dy = this.ty - this.y;
+
+    if(animationStage === 0){
+      this.vx += dx * this.ease * 0.02;
+      this.vy += dy * this.ease * 0.02;
+      this.vx *= this.friction;
+      this.vy *= this.friction;
+    }
+    else if(animationStage === 1){
+      this.vy += 0.12;
+      this.vx *= 0.99;
+      this.vy *= 0.995;
+    }
+    else {
+      this.vx += dx * 0.015;
+      this.vy += dy * 0.015;
+      this.vx *= 0.9;
+      this.vy *= 0.9;
+    }
+
+    this.x += this.vx;
+    this.y += this.vy;
+  }
+
+  draw(){
+    ctx.beginPath();
+    ctx.fillStyle = this.color;
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ==== RESET ====
+function resetParticles(){
+  particles = [];
+  for(let t of targets){
+    particles.push(new Particle(t.x + Math.random()*4, t.y + Math.random()*4));
+  }
+  animationStage = 0;
+  frame = 0;
+}
+
+// ==== ANIMATION LOOP ====
+function animate(){
+  requestAnimationFrame(animate);
+  frame++;
+
+  ctx.clearRect(0,0,W,H);
+
+  // glow background
+  const g = ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,"rgba(11,0,16,0.6)");
+  g.addColorStop(1,"rgba(15,3,25,0.9)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  for(let p of particles){
+    p.update();
+    p.draw();
+  }
+
+  // timeline
+  if(frame === 260) animationStage = 0;
+  if(frame === 360) animationStage = 1;
+  if(frame === 540) animationStage = 2;
+  if(frame > 1100){
+    createTargetsFromText();
+    resetParticles();
+  }
+}
+
+// ==== INIT ====
+createTargetsFromText();
+resetParticles();
+animate();
+</script>
+
+</body>
+</html>

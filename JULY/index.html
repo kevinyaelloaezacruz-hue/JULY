@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Dark Fantasy Pixel Scene</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+        touch-action: manipulation;
+    }
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+    }
+</style>
+</head>
+
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- Música principal -->
+<audio id="bgm_main" loop preload="auto" playsinline>
+    <source src="melting.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Música al hacer click -->
+<audio id="bgm_click" preload="auto" playsinline>
+    <source src="melting.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ==== CANVAS ====
+const c = document.getElementById("scene");
+const ctx = c.getContext("2d");
+
+// Pixel resolution internal
+const W = 320;
+const H = 180;
+c.width = W;
+c.height = H;
+
+function resizeCanvas() {
+    c.style.width = window.innerWidth + "px";
+    c.style.height = window.innerHeight + "px";
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// ==== COLORS ====
+const skyTop="#654A96", skyBottom="#F2A6BA";
+const mountainDark="#1F2E4A", mountainMid="#3A4C70", mountainLight="#6A82B3";
+const castleColor="#313A59";
+const riverColor="#FFB4A0";
+const foregroundColor="#0A1A2B";
+
+// ==== CLOUDS ====
+let clouds=[];
+for(let i=0;i<5;i++)
+    clouds.push({x:Math.random()*W, y:20+Math.random()*60, speed:0.2+Math.random()*0.3});
+
+// ==== DRAWING ====
+function drawSky(){
+    let g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,skyTop); g.addColorStop(1,skyBottom);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+
+function drawCloud(x,y){
+    ctx.fillStyle="#CFA9D8";
+    for(let i=0;i<6;i++) ctx.fillRect(x+i*8, y+Math.sin(i)*2, 20,8);
+}
+
+function drawMountains(){
+    ctx.fillStyle=mountainLight; ctx.fillRect(0,H*0.45,W,60);
+    ctx.fillStyle=mountainMid; ctx.fillRect(0,H*0.55,W,60);
+    ctx.fillStyle=mountainDark; ctx.fillRect(0,H*0.65,W,80);
+}
+
+function drawCastle(){
+    let b=H*0.55;
+    ctx.fillStyle=castleColor;
+    ctx.fillRect(W*0.65,b-60,30,60);
+    ctx.fillRect(W*0.70,b-45,15,45);
+    ctx.fillRect(W*0.68,b-75,10,15);
+}
+
+function drawRiver(){
+    ctx.fillStyle=riverColor;
+    ctx.beginPath();
+    ctx.moveTo(W*0.55,H*0.55);
+    ctx.bezierCurveTo(W*0.35,H*0.65, W*0.60,H*0.85, W*0.45,H);
+    ctx.lineTo(W*0.55,H);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function drawForeground(){
+    ctx.fillStyle=foregroundColor;
+    ctx.fillRect(0,H*0.75,W,H*0.25);
+}
+
+// ==== BUTTON START ====
+let btn = { x: W/2 - 40, y: H/2 - 15, w: 80, h: 30 };
+
+function drawButton(){
+    ctx.fillStyle="#3B2F52";
+    ctx.fillRect(btn.x,btn.y,btn.w,btn.h);
+
+    ctx.strokeStyle="#E9B4FF";
+    ctx.lineWidth=2;
+    ctx.strokeRect(btn.x,btn.y,btn.w,btn.h);
+
+    ctx.fillStyle="#FFF";
+    ctx.font="12px monospace";
+    ctx.fillText("START",btn.x+18,btn.y+20);
+}
+
+function isInsideButton(mx,my){
+    return mx>btn.x && mx<btn.x+btn.w && my>btn.y && my<btn.y+btn.h;
+}
+
+// ==== MUSIC ====
+let musicStarted = false;
+
+function initMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+
+    const main = document.getElementById("bgm_main");
+    main.currentTime = 0;
+    main.play().catch(()=>{});
+}
+
+window.addEventListener("touchstart", initMusic, { once:true });
+window.addEventListener("mousedown", initMusic, { once:true });
+
+c.addEventListener("click", e=>{
+    const rect = c.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const my = (e.clientY - rect.top) * (H / rect.height);
+
+    if(isInsideButton(mx,my)){
+        const main = document.getElementById("bgm_main");
+        const clickSound = document.getElementById("bgm_click");
+
+        main.pause();
+        main.currentTime = 0;
+
+        clickSound.currentTime = 0;
+        clickSound.play();
+
+        setTimeout(()=>{ window.location.href="JULY1.html"; }, 600);
+    }
+});
+
+// ==== ANIMATION ====
+function animate(){
+    drawSky();
+
+    clouds.forEach(cl=>{
+        drawCloud(cl.x,cl.y);
+        cl.x+=cl.speed;
+        if(cl.x>W+30) cl.x=-40;
+    });
+
+    drawMountains();
+    drawCastle();
+    drawRiver();
+    drawForeground();
+    drawButton();
+
+    requestAnimationFrame(animate);
+}
+animate();
+
+</script>
+
+</body>
+</html>
